@@ -7,7 +7,13 @@ const jobSchema = new mongoose.Schema({
   },
   companyId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Company", // อ้างอิงไปยัง Company model
+    ref: "Company",
+    required: true,
+  },
+  recruiterId: {
+    // เพิ่ม recruiterId
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Recruiter",
     required: true,
   },
   location: {
@@ -16,15 +22,15 @@ const jobSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["Full-time", "Part-time", "Contract", "Internship"], // กำหนดประเภทของงาน
+    enum: ["Full-time", "Part-time", "Contract", "Internship"],
     required: true,
   },
   salary: {
-    type: Number, // หรืออาจใช้ Number ขึ้นอยู่กับรูปแบบที่คุณต้องการ
+    type: Number,
   },
   posted: {
     type: Date,
-    default: Date.now, // ตั้งค่าวันที่โพสต์เป็นวันปัจจุบันโดยอัตโนมัติ
+    default: Date.now,
   },
   category: {
     type: String,
@@ -38,13 +44,12 @@ const jobSchema = new mongoose.Schema({
       "Other",
     ],
   },
-  tags: [String], // เก็บ tags เป็น array ของ strings
+  tags: [String],
   description: {
     type: String,
     required: true,
   },
-  requirements: [String], // เก็บ requirements เป็น array ของ strings
-  // เพิ่มเติม field อื่นๆ ตามต้องการ เช่น benefits, howToApply, etc.
+  requirements: [String],
 });
 
 module.exports = mongoose.model("Job", jobSchema);

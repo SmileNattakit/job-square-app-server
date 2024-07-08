@@ -14,10 +14,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  userType: {
-    type: String,
-    default: "Recruiter",
-  },
 });
 
 const Recruiter = mongoose.model("Recruiter", userSchema);

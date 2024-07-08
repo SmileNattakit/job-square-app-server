@@ -1,5 +1,7 @@
 const Job = require("../models/jobModel");
-
+const Application = require("../models/applicationModel");
+const Talent = require("../models/talentModel");
+const Recruiter = require("../models/recruiterModel");
 exports.getAllJobs = async (req, res) => {
   try {
     const jobs = await Job.find().populate("companyId");
@@ -69,5 +71,34 @@ exports.deleteJob = async (req, res) => {
     res.json({ message: "Job deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.applyForJob = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    // ตรวจสอบว่า talent มีอยู่จริง
+    const talent = await Talent.findById(req.body.talentId);
+    if (!talent) {
+      return res.status(404).json({ message: "Talent not found" });
+    }
+
+    const application = new Application({
+      jobId: job._id,
+      talentId: req.body.talentId, // ใช้ talentId แทน applicantId
+      useCurrentCV: req.body.useCurrentCV,
+      cv: req.body.cv,
+      interest: req.body.interest,
+      coverLetter: req.body.coverLetter,
+    });
+
+    const newApplication = await application.save();
+    res.status(201).json(newApplication);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

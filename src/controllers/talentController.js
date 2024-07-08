@@ -1,6 +1,7 @@
 const validator = require("validator");
 const bcrypt = require("bcrypt");
 const Talent = require("../models/talentModel");
+const jwt = require("jsonwebtoken");
 
 exports.registerTalent = async (req, res) => {
   try {
@@ -63,9 +64,20 @@ exports.loginTalent = async (req, res) => {
       return res.status(401).json({ message: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     }
 
-    // สร้างและส่ง token (JWT หรืออื่นๆ) ในส่วนนี้ (ถ้ามี)
+    // สร้าง JWT
+    const token = jwt.sign(
+      {
+        userId: talent._id,
+        role: "talent",
+        firstname: talent.firstName, // เพิ่ม firstname
+        lastname: talent.lastName, // เพิ่ม lastname
+        email: talent.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" } // กำหนดอายุของ token (เช่น 1 ชั่วโมง)
+    );
 
-    res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", talent });
+    res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ Talent:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" });

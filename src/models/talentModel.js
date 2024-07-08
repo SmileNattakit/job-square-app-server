@@ -18,10 +18,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  userType: {
-    type: String,
-    default: "Talent",
-  },
 });
 
 const Talent = mongoose.model("Talent", userSchema);
