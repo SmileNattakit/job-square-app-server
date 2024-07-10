@@ -5,13 +5,7 @@ const jobSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  companyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Company",
-    required: true,
-  },
   recruiterId: {
-    // เพิ่ม recruiterId
     type: mongoose.Schema.Types.ObjectId,
     ref: "Recruiter",
     required: true,

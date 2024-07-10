@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
+const talentSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: true,
@@ -18,8 +18,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  phoneNumber: {
+    type: String,
+    default: "",
+  },
+  cvFile: {
+    type: String,
+    default: "",
+  },
 });
 
-const Talent = mongoose.model("Talent", userSchema);
+const Talent = mongoose.model("Talent", talentSchema);
 
 module.exports = Talent;

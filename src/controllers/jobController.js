@@ -2,9 +2,10 @@ const Job = require("../models/jobModel");
 const Application = require("../models/applicationModel");
 const Talent = require("../models/talentModel");
 const Recruiter = require("../models/recruiterModel");
+
 exports.getAllJobs = async (req, res) => {
   try {
-    const jobs = await Job.find().populate("companyId");
+    const jobs = await Job.find().populate("recruiterId", "-password");
     res.json(jobs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -13,7 +14,10 @@ exports.getAllJobs = async (req, res) => {
 
 exports.getJobById = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id).populate("companyId");
+    const job = await Job.findById(req.params.id).populate(
+      "recruiterId",
+      "-password"
+    );
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
@@ -24,19 +28,24 @@ exports.getJobById = async (req, res) => {
 };
 
 exports.createJob = async (req, res) => {
-  const job = new Job({
-    title: req.body.title,
-    companyId: req.body.companyId,
-    location: req.body.location,
-    type: req.body.type,
-    salary: req.body.salary,
-    category: req.body.category,
-    tags: req.body.tags,
-    description: req.body.description,
-    requirements: req.body.requirements,
-  });
-
   try {
+    const recruiter = await Recruiter.findById(req.body.recruiterId);
+    if (!recruiter) {
+      return res.status(404).json({ message: "Recruiter not found" });
+    }
+
+    const job = new Job({
+      title: req.body.title,
+      recruiterId: req.body.recruiterId,
+      location: req.body.location,
+      type: req.body.type,
+      salary: req.body.salary,
+      category: req.body.category,
+      tags: req.body.tags,
+      description: req.body.description,
+      requirements: req.body.requirements,
+    });
+
     const newJob = await job.save();
     res.status(201).json(newJob);
   } catch (error) {
@@ -51,7 +60,12 @@ exports.updateJob = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
 
-    if (req.body.title) job.title = req.body.title;
+    // อัปเดตฟิลด์ต่างๆ ตามที่ส่งมา
+    Object.keys(req.body).forEach((key) => {
+      if (job[key] !== undefined) {
+        job[key] = req.body[key];
+      }
+    });
 
     const updatedJob = await job.save();
     res.json(updatedJob);
@@ -81,7 +95,6 @@ exports.applyForJob = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
 
-    // ตรวจสอบว่า talent มีอยู่จริง
     const talent = await Talent.findById(req.body.talentId);
     if (!talent) {
       return res.status(404).json({ message: "Talent not found" });
@@ -89,7 +102,7 @@ exports.applyForJob = async (req, res) => {
 
     const application = new Application({
       jobId: job._id,
-      talentId: req.body.talentId, // ใช้ talentId แทน applicantId
+      talentId: req.body.talentId,
       useCurrentCV: req.body.useCurrentCV,
       cv: req.body.cv,
       interest: req.body.interest,
