@@ -69,17 +69,28 @@ exports.loginTalent = async (req, res) => {
       {
         userId: talent._id,
         role: "talent",
-        firstname: talent.firstName, // เพิ่ม firstname
-        lastname: talent.lastName, // เพิ่ม lastname
-        email: talent.email,
+        firstName: talent.firstName,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" } // กำหนดอายุของ token (เช่น 1 ชั่วโมง)
+      { expiresIn: "1h" }
     );
 
     res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ Talent:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" });
+  }
+};
+
+exports.getTalentData = async (req, res) => {
+  try {
+    const talentData = await Talent.findById(req.params.id, "-password");
+    if (!talentData) {
+      return res.status(404).json({ message: "ไม่พบข้อมูล Talent" });
+    }
+    res.status(200).json(talentData);
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการดึงข้อมูล Talent:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
   }
 };
