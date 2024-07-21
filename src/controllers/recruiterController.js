@@ -3,12 +3,11 @@ const bcrypt = require("bcrypt");
 const Recruiter = require("../models/recruiterModel");
 const jwt = require("jsonwebtoken");
 
-const generateToken = (userId, role) => {
-  return jwt.sign({ userId, role }, process.env.JWT_SECRET, {
+const generateToken = (userId, role, companyName) => {
+  return jwt.sign({ userId, role, companyName }, process.env.JWT_SECRET, {
     expiresIn: "1h",
   });
 };
-
 exports.registerRecruiter = async (req, res) => {
   try {
     const { companyName, email, password, logo, description, banner, website } =
@@ -71,12 +70,16 @@ exports.loginRecruiter = async (req, res) => {
       return res.status(401).json({ message: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     }
 
-    const isPasswordValid = await recruiter.comparePassword(password);
+    const isPasswordValid = await bcrypt.compare(password, recruiter.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     }
 
-    const token = generateToken(recruiter._id, "recruiter");
+    const token = generateToken(
+      recruiter._id,
+      "recruiter",
+      recruiter.companyName
+    );
     res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ Recruiter:", error);

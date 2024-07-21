@@ -3,6 +3,12 @@ const bcrypt = require("bcrypt");
 const Talent = require("../models/talentModel");
 const jwt = require("jsonwebtoken");
 
+const generateToken = (userId, role, firstName) => {
+  return jwt.sign({ userId, role, firstName }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+};
+
 exports.registerTalent = async (req, res) => {
   try {
     const { firstName, lastName, email, password } = req.body;
@@ -54,6 +60,13 @@ exports.loginTalent = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "รูปแบบอีเมลไม่ถูกต้อง" });
+    }
+    if (validator.isEmpty(password)) {
+      return res.status(400).json({ message: "กรุณากรอกรหัสผ่าน" });
+    }
+
     const talent = await Talent.findOne({ email });
     if (!talent) {
       return res.status(401).json({ message: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
@@ -64,17 +77,7 @@ exports.loginTalent = async (req, res) => {
       return res.status(401).json({ message: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
     }
 
-    // สร้าง JWT
-    const token = jwt.sign(
-      {
-        userId: talent._id,
-        role: "talent",
-        firstName: talent.firstName,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
+    const token = generateToken(talent._id, "talent", talent.firstName);
     res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ Talent:", error);
