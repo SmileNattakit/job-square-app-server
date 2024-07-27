@@ -20,7 +20,11 @@ const applicationSchema = new mongoose.Schema({
     enum: ["Pending", "Reviewed", "Accepted", "Rejected"],
     default: "Pending",
   },
-  message: {
+  interest: {
+    type: String,
+    required: true,
+  },
+  coverLetter: {
     type: String,
   },
 });

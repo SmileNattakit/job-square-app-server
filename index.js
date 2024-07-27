@@ -14,19 +14,35 @@ app.use(express.json());
 mongoose
   .connect(process.env.MONGO_URI, { dbName: process.env.MONGO_DB_NAME })
   .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch((error) => console.error(error));
+  .catch((error) => console.error("Error connecting to MongoDB:", error));
 
-// นำเข้า routes
+// Import routes
 const jobRoutes = require("./src/routes/jobRoutes");
-const recruiterRoutes = require("./src/routes/recruiterRoute");
+const recruiterRoutes = require("./src/routes/recruiterRoutes");
 const talentRoutes = require("./src/routes/talentRoutes");
-const applicationRoutes = require("./src/routes/applicationRoutes"); // นำเข้า applicationRoutes
+const applicationRoutes = require("./src/routes/applicationRoutes");
 
-// เชื่อมต่อ routes กับ server
+// Use routes
 app.use("/jobs", jobRoutes);
 app.use("/recruiters", recruiterRoutes);
 app.use("/talents", talentRoutes);
 app.use("/applications", applicationRoutes);
+
+// Root route
+app.get("/", (req, res) => {
+  res.send("Welcome to the Job Application API");
+});
+
+// Error handling for undefined routes
+app.use((req, res, next) => {
+  res.status(404).send("Route not found");
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
 
 // Start the server
 app.listen(port, () => {
