@@ -2,12 +2,23 @@ const validator = require("validator");
 const bcrypt = require("bcrypt");
 const Recruiter = require("../models/recruiterModel");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
+
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 const generateToken = (userId, role, companyName) => {
   return jwt.sign({ userId, role, companyName }, process.env.JWT_SECRET, {
     expiresIn: "1h",
   });
 };
+
 exports.registerRecruiter = async (req, res) => {
   try {
     const { companyName, email, password, logo, description, banner, website } =
@@ -86,40 +97,90 @@ exports.loginRecruiter = async (req, res) => {
   }
 };
 
-exports.getAllRecruiters = async (req, res) => {
+exports.updateRecruiter = async (req, res) => {
   try {
-    const recruiters = await Recruiter.find({}, "-password");
-    res.json(recruiters);
+    const { id } = req.params;
+    const updateData = { ...req.body };
+
+    const existingRecruiter = await Recruiter.findById(id);
+    if (!existingRecruiter) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลผู้รับสมัคร" });
+    }
+
+    // Handle logo upload
+    if (req.files && req.files.logo) {
+      console.log("Uploading logo...");
+      const logoPath = req.files.logo[0].path;
+      const result = await cloudinary.uploader.upload(logoPath, {
+        folder: "company_logos",
+      });
+      console.log("Logo uploaded to Cloudinary:", result.secure_url);
+      updateData.logo = result.secure_url;
+      fs.unlinkSync(logoPath); // Remove file after upload
+      if (existingRecruiter.logo) {
+        await cloudinary.uploader.destroy(existingRecruiter.logo);
+      }
+    } else if (updateData.removeLogo) {
+      if (existingRecruiter.logo) {
+        await cloudinary.uploader.destroy(existingRecruiter.logo);
+      }
+      updateData.logo = null;
+    }
+
+    // Handle banner upload
+    if (req.files && req.files.banner) {
+      console.log("Uploading banner...");
+      const bannerPath = req.files.banner[0].path;
+      const result = await cloudinary.uploader.upload(bannerPath, {
+        folder: "company_banners",
+      });
+      console.log("Banner uploaded to Cloudinary:", result.secure_url);
+      updateData.banner = result.secure_url;
+      fs.unlinkSync(bannerPath); // Remove file after upload
+      if (existingRecruiter.banner) {
+        await cloudinary.uploader.destroy(existingRecruiter.banner);
+      }
+    } else if (updateData.removeBanner) {
+      if (existingRecruiter.banner) {
+        await cloudinary.uploader.destroy(existingRecruiter.banner);
+      }
+      updateData.banner = null;
+    }
+
+    // Remove undefined fields
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    );
+
+    const updatedRecruiter = await Recruiter.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    const recruiterResponse = updatedRecruiter.toObject();
+    delete recruiterResponse.password;
+
+    res.status(200).json({
+      message: "อัปเดตโปรไฟล์สำเร็จ",
+      recruiter: recruiterResponse,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("เกิดข้อผิดพลาดในการอัปเดตผู้รับสมัคร:", error);
+    res.status(500).json({
+      message: "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์",
+      error: error.message,
+    });
   }
 };
 
-exports.getRecruiterById = async (req, res) => {
+exports.getRecruiterProfile = async (req, res) => {
   try {
     const recruiter = await Recruiter.findById(req.params.id, "-password");
     if (!recruiter) {
-      return res.status(404).json({ message: "Recruiter not found" });
+      return res.status(404).json({ message: "ไม่พบข้อมูลผู้รับสมัคร" });
     }
     res.json(recruiter);
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-};
-
-exports.updateRecruiter = async (req, res) => {
-  try {
-    const { companyName, logo, description, banner, website } = req.body;
-    const updatedRecruiter = await Recruiter.findByIdAndUpdate(
-      req.params.id,
-      { companyName, logo, description, banner, website },
-      { new: true, runValidators: true }
-    );
-    if (!updatedRecruiter) {
-      return res.status(404).json({ message: "Recruiter not found" });
-    }
-    res.json(updatedRecruiter);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
   }
 };
