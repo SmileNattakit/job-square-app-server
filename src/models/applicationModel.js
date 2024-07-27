@@ -7,33 +7,21 @@ const applicationSchema = new mongoose.Schema({
     required: true,
   },
   talentId: {
-    // เปลี่ยนจาก applicantId เป็น talentId
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Talent", // อ้างอิงไปยังโมเดล Talent แทน User
+    ref: "Talent",
     required: true,
   },
-  cv: {
-    type: String,
-  },
-  useCurrentCV: {
-    type: Boolean,
-    default: true,
-  },
-  interest: {
-    type: String,
-    required: true,
-  },
-  coverLetter: {
-    type: String,
+  appliedAt: {
+    type: Date,
+    default: Date.now,
   },
   status: {
     type: String,
     enum: ["Pending", "Reviewed", "Accepted", "Rejected"],
     default: "Pending",
   },
-  appliedAt: {
-    type: Date,
-    default: Date.now,
+  message: {
+    type: String,
   },
 });
 

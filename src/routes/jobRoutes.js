@@ -4,6 +4,7 @@ const jobController = require("../controllers/jobController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/", jobController.getAllJobs);
+router.get("/recruiter/:recruiterId/jobs", jobController.getJobsByRecruiterId);
 router.get("/:id", jobController.getJobById);
 router.post("/", authMiddleware, jobController.createJob);
 router.patch("/:id", jobController.updateJob);

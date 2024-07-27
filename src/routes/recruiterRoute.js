@@ -4,5 +4,6 @@ const recruiterController = require("../controllers/recruiterController"); // à¸
 
 router.post("/", recruiterController.registerRecruiter);
 router.post("/login", recruiterController.loginRecruiter);
+router.get("/:id", recruiterController.getRecruiterById);
 
 module.exports = router;

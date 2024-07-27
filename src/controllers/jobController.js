@@ -27,6 +27,26 @@ exports.getJobById = async (req, res) => {
   }
 };
 
+exports.getJobsByRecruiterId = async (req, res) => {
+  try {
+    const recruiterId = req.params.recruiterId;
+    const jobs = await Job.find({ recruiterId: recruiterId }).populate(
+      "recruiterId",
+      "-password"
+    );
+
+    if (jobs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No jobs found for this company" });
+    }
+
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.createJob = async (req, res) => {
   try {
     const recruiter = await Recruiter.findById(req.body.recruiterId);
@@ -60,10 +80,26 @@ exports.updateJob = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
 
-    // อัปเดตฟิลด์ต่างๆ ตามที่ส่งมา
-    Object.keys(req.body).forEach((key) => {
-      if (job[key] !== undefined) {
-        job[key] = req.body[key];
+    const recruiter = await Recruiter.findById(req.body.recruiterId);
+    if (!recruiter) {
+      return res.status(404).json({ message: "Recruiter not found" });
+    }
+
+    const updateFields = [
+      "title",
+      "recruiterId",
+      "location",
+      "type",
+      "salary",
+      "category",
+      "tags",
+      "description",
+      "requirements",
+    ];
+
+    updateFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        job[field] = req.body[field];
       }
     });
 
@@ -73,17 +109,17 @@ exports.updateJob = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
 exports.deleteJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
+    console.log(`Deleting job with ID: ${req.params.id}`); // เพิ่มการ log
+    const job = await Job.findByIdAndDelete(req.params.id);
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
 
-    await job.remove();
     res.json({ message: "Job deleted" });
   } catch (error) {
+    console.error(`Error deleting job: ${error.message}`); // เพิ่มการ log
     res.status(500).json({ message: error.message });
   }
 };

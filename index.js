@@ -18,15 +18,15 @@ mongoose
 
 // นำเข้า routes
 const jobRoutes = require("./src/routes/jobRoutes");
-
 const recruiterRoutes = require("./src/routes/recruiterRoute");
 const talentRoutes = require("./src/routes/talentRoutes");
+const applicationRoutes = require("./src/routes/applicationRoutes"); // นำเข้า applicationRoutes
 
 // เชื่อมต่อ routes กับ server
 app.use("/jobs", jobRoutes);
-
 app.use("/recruiters", recruiterRoutes);
 app.use("/talents", talentRoutes);
+app.use("/applications", applicationRoutes);
 
 // Start the server
 app.listen(port, () => {

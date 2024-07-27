@@ -32,7 +32,6 @@ exports.registerRecruiter = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const newRecruiter = new Recruiter({
-      recruiterID: Date.now().toString(), // สร้าง recruiterID อย่างง่าย
       companyName,
       email,
       password: hashedPassword,

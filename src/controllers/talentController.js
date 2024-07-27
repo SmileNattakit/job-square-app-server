@@ -2,7 +2,15 @@ const validator = require("validator");
 const bcrypt = require("bcrypt");
 const Talent = require("../models/talentModel");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("cloudinary").v2;
 
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true, // ใช้ HTTPS
+});
 const generateToken = (userId, role, firstName) => {
   return jwt.sign({ userId, role, firstName }, process.env.JWT_SECRET, {
     expiresIn: "1h",
@@ -95,5 +103,107 @@ exports.getTalentData = async (req, res) => {
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการดึงข้อมูล Talent:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
+  }
+};
+
+exports.updateTalent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = { ...req.body };
+
+    // ตรวจสอบว่า Talent มีอยู่จริง
+    const existingTalent = await Talent.findById(id);
+    if (!existingTalent) {
+      return res.status(404).json({ message: "ไม่พบข้อมูล Talent" });
+    }
+
+    // จัดการกับการอัพโหลดไฟล์ CV
+    if (req.file) {
+      try {
+        console.log("Uploading new CV file to Cloudinary...");
+
+        const uploadPromise = new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "cv_uploads", resource_type: "auto" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+
+          uploadStream.end(req.file.buffer);
+        });
+
+        const result = await uploadPromise;
+
+        // เก็บ public_id แทน URL เต็ม
+        updateData.cvFile = result.public_id;
+
+        // ถ้ามี CV เก่าอยู่ ให้ลบออกจาก Cloudinary
+        if (existingTalent.cvFile) {
+          await cloudinary.uploader.destroy(existingTalent.cvFile);
+        }
+      } catch (uploadError) {
+        console.error("Error uploading file to Cloudinary:", uploadError);
+        return res.status(500).json({
+          message: "เกิดข้อผิดพลาดในการอัพโหลดไฟล์ CV",
+          error: uploadError.message,
+        });
+      }
+    } else if (updateData.removeCv) {
+      // ถ้าต้องการลบ CV
+      if (existingTalent.cvFile) {
+        await cloudinary.uploader.destroy(existingTalent.cvFile);
+      }
+      updateData.cvFile = null;
+    } else {
+      // ถ้าไม่มีการเปลี่ยนแปลงเกี่ยวกับ CV ให้ลบ field นี้ออกจาก updateData
+      delete updateData.cvFile;
+    }
+
+    // ลบ fields ที่ไม่ได้รับการอัพเดตออก
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    );
+
+    // อัพเดตข้อมูล Talent
+    const updatedTalent = await Talent.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    // ลบข้อมูลที่ sensitive ออกก่อนส่งกลับ
+    const talentResponse = updatedTalent.toObject();
+    delete talentResponse.password;
+
+    res.status(200).json({
+      message: "อัพเดตข้อมูลสำเร็จ",
+      talent: talentResponse,
+    });
+  } catch (error) {
+    console.error("Error in updateTalent:", error);
+    res.status(500).json({
+      message: "เกิดข้อผิดพลาดในการอัพเดตข้อมูล",
+      error: error.message,
+    });
+  }
+};
+exports.downloadCV = async (req, res) => {
+  try {
+    const { public_id } = req.params;
+
+    // ใช้ cloudinary.url เพื่อสร้าง URL ที่ถูกต้อง
+    const url = cloudinary.url(public_id, {
+      resource_type: "raw",
+      format: "pdf", // หรือ format ที่คุณใช้สำหรับ CV
+    });
+
+    res.json({ downloadUrl: url });
+  } catch (error) {
+    console.error("Error generating download URL:", error);
+    res.status(500).json({
+      message: "เกิดข้อผิดพลาดในการสร้าง URL สำหรับดาวน์โหลด",
+      error: error.message,
+    });
   }
 };
